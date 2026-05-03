@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>For Nouryyy ❤️</title>
+
+<style>
+body{margin:0;background:black;color:white;font-family:Arial;text-align:center; overflow-x: hidden; transition: background 0.2s;}
+.page{display:none;}
+.active{display:block;}
+
+#lockScreen {
+    position: fixed; inset: 0; background: black; z-index: 100000;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+}
+.timer-box { display: flex; gap: 15px; margin-top: 20px; }
+.time-unit { background: #ff4d6d; padding: 15px; border-radius: 10px; min-width: 70px; }
+.time-unit span { display: block; font-size: 30px; font-weight: bold; }
+.time-unit label { font-size: 14px; }
+
+h2 { font-size: 32px; padding: 10px; }
+button{
+ padding:20px; margin:12px; background:#ff4d6d;
+ border:none; border-radius:15px; color:white; font-size: 24px;
+ cursor: pointer; width: 85%; max-width: 320px; font-weight: bold;
+}
+
+#flashEffect{
+ position:fixed; inset:0; background:white; opacity:0;
+ pointer-events:none; z-index:99999; transition: all 0.4s ease;
+}
+
+.correctGlow { background: #00ff44 !important; }
+.wrongRed { background: #ff0000 !important; }
+.shake { animation: shake 0.2s ease-in-out infinite; }
+@keyframes shake {
+ 0%, 100% {transform: translateX(0);}
+ 25% {transform: translateX(-15px);}
+ 75% {transform: translateX(15px);}
+}
+
+#hud{position:fixed; top:10px; left:15px; text-align: left; font-size: 22px; z-index: 100;}
+img,video{width:92%; max-width:400px; border-radius:30px; margin-top: 25px; border: 4px solid #ff4d6d; box-shadow: 0 0 20px #ff4d6d;}
+
+#qTimer{font-size:32px; color:#ffcc00; font-weight: bold; margin: 20px 0;}
+.red{color:red; animation:blink .5s infinite;}
+@keyframes blink{50%{opacity:0.2;}}
+
+#waitingScreen, #winScreen, #birthdayScene, #finalMessage{
+ display:none; position:fixed; inset:0; background:black;
+ justify-content:center; align-items:center; flex-direction:column; z-index:9999;
+}
+
+.gift-text { font-size: 26px; color: #ffeb3b; padding: 20px; line-height: 1.5; text-shadow: 0 0 10px #000; }
+#typedText { font-size: 26px; line-height: 1.8; padding: 25px; white-space: pre-wrap; font-weight: bold; }
+</style>
+</head>
+
+<body>
+
+<div id="lockScreen">
+    <h2 id="lockMsg">فاضل تكة على المفاجأة يا نونتيي.. 🥺♥️</h2>
+    <div class="timer-box">
+        <div class="time-unit"><span id="days">00</span><label>يوم</label></div>
+        <div class="time-unit"><span id="hours">00</span><label>ساعة</label></div>
+        <div class="time-unit"><span id="minutes">00</span><label>دقيقة</label></div>
+        <div class="time-unit"><span id="seconds">00</span><label>ثانية</label></div>
+    </div>
+</div>
+
+<div id="flashEffect"></div>
+
+<div id="waitingScreen">
+<div id="countdownText">
+    جاهزة يا نور عيني؟🥺❤️<br><br>
+    <button onclick="startCountdown()">جاهزة 💖</button>
+</div>
+</div>
+
+<div id="hud">
+⭐ <span id="score">0</span><br>
+⏱️ <span id="time">0</span>s
+</div>
+
+<div id="p1" class="page">
+<h2>لعبة مخصوصة ليكي يا نونتي😘</h2>
+<button onclick="startGame()">ابدأي 💖</button>
+</div>
+
+<div id="p2" class="page">
+<button onclick="showMemory()">📸 ذكرياتنا سوا</button>
+<button onclick="quiz()">🧠 أسئلة خاصة بينا</button>
+<button onclick="gift()">🎁 الهدية</button>
+<button onclick="tryUnlock()">🔒 النهاية</button>
+</div>
+
+<div id="p3" class="page">
+<div id="content"></div>
+<div id="feedback"></div> 
+<button onclick="go(2)">⬅ رجوع</button>
+</div>
+
+<div id="winScreen"></div>
+<div id="birthdayScene"><h1 style="font-size:45px; color:#ff4d6d; text-align: center;">Happy Birthday<br>Nouran 🎂❤️</h1></div>
+<div id="finalMessage"><div id="typedText"></div></div>
+
+<audio id="voiceIntro" src="intro.mp3" loop></audio>
+<audio id="finalVoice" src="voice_final.mp3"></audio>
+<audio id="boomSound" src="boom.mp3"></audio>
+<audio id="wrongSound" src="buzz.mp3"></audio>
+<audio id="correctSound" src="correct.mp3"></audio>
+<audio id="giftSong" src="gift.mp3"></audio>
+<audio id="voice1" src="v1.mp3"></audio>
+<audio id="voice2" src="v2.mp3"></audio>
+<audio id="voice3" src="v3.mp3"></audio>
+
+<script>
+const targetDate = new Date(2025, 4, 10, 23, 59, 59); 
+
+function updateLockTimer() {
+    const now = new Date();
+    const diff = targetDate - now;
+    if (diff <= 0) {
+        document.getElementById("lockScreen").style.display = "none";
+        document.getElementById("waitingScreen").style.display = "flex";
+        clearInterval(lockInterval);
+        return;
+    }
+    const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const s = Math.floor((diff % (1000 * 60)) / 1000);
+    document.getElementById("days").innerText = d.toString().padStart(2, '0');
+    document.getElementById("hours").innerText = h.toString().padStart(2, '0');
+    document.getElementById("minutes").innerText = m.toString().padStart(2, '0');
+    document.getElementById("seconds").innerText = s.toString().padStart(2, '0');
+}
+const lockInterval = setInterval(updateLockTimer, 1000);
+updateLockTimer();
+
+let score=0, time=0, tries=0, unlocked=0;
+let timer, timeLeft=10, currentQ, startX=0;
+let qIndex = 0;
+
+// نظام تشغيل المؤثرات الصوتية بشكل مستقل ومضمون
+function playEffect(id) {
+    let s = document.getElementById(id);
+    if(s) {
+        s.pause(); 
+        s.currentTime = 0; 
+        s.play().catch(e => console.log("Audio block"));
+    }
+}
+
+// إيقاف أي ميديا تانية غير الانترو (زي فيديوهات الذكريات)
+function stopVidsAndMemVoices() {
+    ["voice1", "voice2", "voice3"].forEach(id => {
+        let s = document.getElementById(id);
+        if(s) { s.pause(); s.currentTime = 0; }
+    });
+    const video = document.querySelector("video");
+    if(video) { video.pause(); video.remove(); }
+}
+
+function go(n){
+ document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+ document.getElementById("p"+n).classList.add("active");
+ if(n === 2) { 
+    stopVidsAndMemVoices();
+    let intro = document.getElementById("voiceIntro");
+    if(intro && intro.paused) intro.play(); 
+ }
+}
+
+function startCountdown(){
+ let text = document.getElementById("countdownText");
+ let nums = ["3","2","1","🎂"];
+ let i = 0;
+ let t = setInterval(()=>{
+  if(i < nums.length) { text.innerHTML = `<span style="font-size:80px; color:#ff4d6d;">${nums[i]}</span>`; i++; }
+  else {
+   clearInterval(t);
+   triggerFlash();
+   setTimeout(()=>{ document.getElementById("waitingScreen").style.display="none"; go(1); }, 400);
+  }
+ },1000);
+}
+
+function triggerFlash(){
+ playEffect("boomSound");
+ let flash = document.getElementById("flashEffect");
+ flash.style.opacity = "1";
+ setTimeout(()=>{ flash.style.background = "#ff4d6d"; }, 200);
+ setTimeout(()=>{ flash.style.opacity = "0"; flash.style.background = "white"; }, 700);
+}
+
+function startGame(){
+ go(2);
+}
+
+function gift(){
+ document.getElementById("voiceIntro")?.pause();
+ playEffect("giftSong");
+ document.getElementById("content").innerHTML = `
+    <div style="font-size:120px; margin:20px 0;">🎁</div>
+    <div class="gift-text">اجمل هدية لأحلى نورا في الدنيا كلها كل سنة وانتي منورة حياتي ودنيتي 🌍♥️♥️🔐</div>
+ `;
+ go(3);
+}
+
+function showMemory(){
+ stopVidsAndMemVoices();
+ document.getElementById("voiceIntro")?.pause();
+ let c = document.getElementById("content");
+ let imgs=[...Array(65)].map((_,i)=>`${i+1}.jpg`);
+ let vids=[...Array(28)].map((_,i)=>`v${i+1}.mp4`);
+ let all = [...imgs.map(x=>({type:"img",src:x})), ...vids.map(x=>({type:"vid",src:x}))];
+ let m = all[Math.floor(Math.random()*all.length)];
+
+ if(m.type === "img"){
+  c.innerHTML = `<img src="${m.src}" id="memItem">`;
+  let v = ["voice1", "voice2", "voice3"][Math.floor(Math.random()*3)];
+  playEffect(v);
+ } else {
+  c.innerHTML = `<video autoplay controls src="${m.src}" id="memItem"></video>`;
+ }
+
+ let item = document.getElementById("memItem");
+ item.addEventListener('touchstart', e => { startX = e.touches[0].clientX; });
+ item.addEventListener('touchend', e => {
+  if(Math.abs(e.changedTouches[0].clientX - startX) > 60) showMemory(); 
+ });
+ item.onclick = showMemory;
+ unlocked++; go(3);
+}
+
+const questions=[
+  {q:"أنا بحب فيكي ايه؟ ❤️", options:["ضحكتك","عيونك","كل حاجة بقا عينك وضحكك وشفايفك وحلاوتك وجمالك وكسوفك"], correct:2},
+  {q:"بناديكي بإيه؟ 😂", options:["نونتي","نور","حبيبتي"], correct:0},
+  {q:"اكتر يوم بتحبيه؟ 😂", options:["الاربع","الجمعه","كلهم"], correct:0},
+  {q:"اليوم اللي اتقفشنا فيه؟ 😂", options:["23/11","24/11","20/11"], correct:1},
+  {q:"اول مره اتكلمنا؟👀", options:["10/10","11/11","12/12"], correct:0},
+  {q:"اول مره اعترفتلك بحبي وقولتلك اني بحبك؟👀", options:["25/10","24/11","2/11"], correct:0},
+  {q:"اول مره اعترفتيلي انتي بحبك؟👀", options:["25/10","24/11","25/11"], correct:1},
+  {q:"اعترفتيلي بحبك فين؟👀", options:["النادي","التلفون الارضي ","Face to face"], correct:1},
+  {q:"اول مره بوسنا بعض lip kiss؟👀", options:["4/2","5/2","2/2"], correct:0},
+  {q:"بتحبي مين اكتر حد في الدنيا؟👀", options:["بودي","بابا ","ماما"], correct:0}
+];
+
+function quiz(){
+ if(qIndex >= questions.length) qIndex = 0;
+ currentQ = questions[qIndex];
+ qIndex++;
+ let html = `<h3>${currentQ.q}</h3><div id="qTimer">⏳ 10</div>`;
+ currentQ.options.forEach((o,i)=>{ html += `<button onclick="answer(${i})">${o}</button><br>`; });
+ document.getElementById("content").innerHTML = html;
+ startTimer(); go(3);
+}
+
+function startTimer(){
+ clearInterval(timer); timeLeft=10;
+ timer=setInterval(()=>{
+  let el=document.getElementById("qTimer");
+  if(el){
+   el.innerText="⏳ "+timeLeft;
+   if(timeLeft<=3) el.classList.add("red");
+   if(timeLeft<0){ clearInterval(timer); tries++; go(2); }
+  }
+  timeLeft--;
+ },1000);
+}
+
+function answer(i){
+ clearInterval(timer); tries++;
+ if(i===currentQ.correct){
+  score++; document.getElementById("score").innerText = score;
+  playEffect("correctSound"); 
+  document.body.classList.add("correctGlow");
+  setTimeout(()=>{ document.body.classList.remove("correctGlow"); go(2); }, 600);
+ } else {
+  playEffect("wrongSound"); 
+  document.body.classList.add("wrongRed", "shake");
+  document.getElementById("feedback").innerHTML = "<b style='font-size:28px; color:white;'>غلط يا نورا ركزي! 😂</b>";
+  setTimeout(()=>{
+   document.body.classList.remove("wrongRed", "shake");
+   document.getElementById("feedback").innerText = "";
+   go(2);
+  }, 1000);
+ }
+}
+
+function tryUnlock(){
+ if(unlocked < 10) { alert("سوري بس لازم تفتحي ١٠ ذكريات الاول يا حبيبي قبل النهايه 😂"); return; }
+ if(tries > 0 && (score/tries < 0.7)) { alert("ركزي ف الاسئله شويه يا نونتي وجاوبي صح عشان نفتح النهايه قربنا اهو🥰😘"); return; }
+ showWin();
+}
+
+function showWin(){
+ document.getElementById("voiceIntro")?.pause();
+ playEffect("boomSound");
+ let win = document.getElementById("winScreen");
+ win.style.display="flex";
+ win.innerHTML='<div class="winText">YOU WON MY ❤️</div>';
+ setTimeout(()=>{
+  win.style.display="none";
+  document.getElementById("birthdayScene").style.display="flex";
+  setTimeout(()=>{
+   document.getElementById("birthdayScene").style.display="none";
+   document.getElementById("finalMessage").style.display="flex";
+   typeMessage();
+  }, 3500);
+ }, 4000);
+}
+
+function typeMessage(){
+ let text = `بصي بقا يا نونتي 🥰\nيا روح قلبي من جوا♥️\nيا نور عيني 👀\nيا نبض قلبي 💓\n يا اوكسجيني اللي بتنفسه 🤤😋 \n انا بجد بحبك اوي ومقدرش استغني عنك ابداً 🥺♥️ \n كل سنة وانتي طيبة وعقبال ١٠٠ سنه 🎂🎉 \n  احنا مع بعض 🤩\n وكل سنه وانتي منوره حياتي ودنيتي💡😘 \n بحبككك يا ناناا👩‍❤️‍👨❤️ \nبحبككك يا قلب بودي من جواا وبموت فيكيي👩‍❤️‍👨❤️`;
+ let i=0; let el=document.getElementById("typedText");
+ playEffect("finalVoice");
+ function typing(){
+  if(i<text.length){
+   el.innerHTML += text[i]==="\n" ? "<br>" : text[i];
+   i++; setTimeout(typing, 60);
+  }
+ }
+ typing();
+}
+setInterval(()=> { time++; document.getElementById("time").innerText = time; }, 1000);
+</script>
+</body>
+</html>
